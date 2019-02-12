@@ -36,7 +36,7 @@ When you are ready to start up the server, run this command from the same direct
 make run
 ```
 
-This will start up the `couchdb` server on its standard port of `5984` (unless you edited that in the `couchdb_ini` file. It will bind to all interfaces (since the bind address is set to `0.0.0.0` in that same file, unless you edited it). Running the container should only take a few seconds. When the container has staryed up, pleae complete the basic setup before you relax.
+This will start up the `couchdb` server on its standard port of `5984` (unless you edited that in the `couchdb_ini` file. It will bind to all interfaces (since the bind address is set to `0.0.0.0` in that same file, unless you edited it). Running the container should only take a few seconds. When the container has staryed up, please complete the basic setup before you relax.
 
 ## Complete The Setup
 
