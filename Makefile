@@ -19,13 +19,25 @@
 # The specified directory is mounted in each running container as `/data`
 # and the Dockerfile symlinks `/data` to `/home/couchdb/data` where couchdb
 # will normally write its data. See the Dockerfile for more details.
-RAM_STORAGE_DIR:=/ramdisk
+RAM_STORAGE_DIR:=/ramdisk/couchdb
 DISK_STORAGE_DIR:=$(shell pwd)/../_couchdb_data
 DEV_STORAGE_DIR:=$(shell pwd)/../_couchdb_dev_data
 
 # Host ports for the RAM instance and the DISK instance
 HOST_RAM_PORT:=5984
 HOST_DISK_PORT:=5985
+PUBLISH:=
+# Set this to publish the service port to the host
+PUBLISH:=--publish $(HOST_RAM_PORT):5984
+
+# Private network
+NETNAME:=
+NETWORK:=
+ALIAS:=
+# Set these to use the private network
+NETNAME:=dbnet
+NETWORK:=--net=$(NETNAME)
+ALIAS:=--net-alias=couchdb
 
 all: build run
 
@@ -35,21 +47,25 @@ build:
 dev: build
 	-docker rm -f couchdb 2> /dev/null || :
 	echo "Storing couchdb data files in $(STORAGE_DIR)"
+	-docker network create $(NETNAME) 2>/dev/null || :
 	docker run -it --name couchdb --volume `pwd`:/outside --volume $(DEV_STORAGE_DIR):/data --publish 5984:5984 couchdb /bin/bash
 
 run:
+	-docker network create $(NETNAME) 2>/dev/null || :
 	-docker rm -f couchdb 2>/dev/null || :
 	echo "Starting RAM instance of couchdb on port $(HOST_RAM_PORT) with data files in $(RAM_STORAGE_DIR)"
-	docker run -d --name couchdb --volume `pwd`:/outside --volume $(RAM_STORAGE_DIR):/data --publish $(HOST_RAM_PORT):5984 couchdb
-	echo "Starting DISK instance of couchdb on port $(HOST_DISK_PORT) with data files in $(DISK_STORAGE_DIR)"
-	docker run -d --name couchdb2 --volume `pwd`:/outside --volume $(DISK_STORAGE_DIR):/data --publish $(HOST_DISK_PORT):5984 couchdb
+	docker run -d --name couchdb --restart unless-stopped --volume `pwd`:/outside --volume $(RAM_STORAGE_DIR):/data $(PUBLISH) $(NETWORK) $(ALIAS) couchdb
+	@echo "CouchDB is ready. Relax."
+	#echo "Starting DISK instance of couchdb on port $(HOST_DISK_PORT) with data files in $(DISK_STORAGE_DIR)"
+	#docker run -d --name couchdb2 --restart unless-stopped --volume `pwd`:/outside --volume $(DISK_STORAGE_DIR):/data --publish $(HOST_DISK_PORT):5984 couchdb
 
 exec:
 	docker exec -it couchdb /bin/bash
 
 stop:
 	-docker rm -f couchdb 2>/dev/null || :
-	-docker rm -f couchdb2 2>/dev/null || :
+	#-docker rm -f couchdb2 2>/dev/null || :
+	sudo rm -rf $(RAM_STORAGE_DIR) || :
 
 clean: stop
 	-docker rmi couchdb 2>/dev/null || :
