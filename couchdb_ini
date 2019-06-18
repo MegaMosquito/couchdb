@@ -94,6 +94,14 @@ require_valid_user = true
 writer = file
 file = /opt/couchdb/log/couch.log
 
+; Enable cross-origin access
+[httpd]
+enable_cors = true
+
+; Enable cross-origin access from anywhere
+[cors]
+origins = *
+
 ; To create an admin account uncomment the '[admins]' section below and add a
 ; line in the format 'username = password'. When you next start CouchDB, it
 ; will change the password to a hash (so that your passwords don't linger
