@@ -10,6 +10,13 @@
 # add this line to your `/etc/fstab` file (as root):
 # tmpfs   /ramdisk    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0
 
+
+# These variables need to match couchdb_ini, and sync.sh, and *_PORT below
+MY_COUCHDB_ADDRESS        := '192.168.123.3'
+MY_COUCHDB_PORT           := 5984
+MY_COUCHDB_USER           := 'admin'
+MY_COUCHDB_PASSWORD       := 'p4ssw0rd'
+
 # To initiate a sync between the RAM instance and the disk instance, use
 # the `make sync` command.
 
@@ -58,6 +65,11 @@ run:
 	@echo "CouchDB is ready. Relax."
 	#echo "Starting DISK instance of couchdb on port $(HOST_DISK_PORT) with data files in $(DISK_STORAGE_DIR)"
 	#docker run -d --name couchdb2 --restart unless-stopped --volume `pwd`:/outside --volume $(DISK_STORAGE_DIR):/data --publish $(HOST_DISK_PORT):5984 couchdb
+	MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
+	MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
+	MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
+	MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+	python ./setup.py
 
 exec:
 	docker exec -it couchdb /bin/bash
