@@ -10,9 +10,12 @@
 # add this line to your `/etc/fstab` file (as root):
 # tmpfs   /ramdisk    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0
 
+# Some bits from https://github.com/MegaMosquito/netstuff/blob/master/Makefile
+LOCAL_DEFAULT_ROUTE     := $(shell sh -c "ip route | grep default")
+LOCAL_IP_ADDRESS        := $(word 7, $(LOCAL_DEFAULT_ROUTE))
 
 # These variables need to match couchdb_ini, and sync.sh, and *_PORT below
-MY_COUCHDB_ADDRESS        := '192.168.123.3'
+MY_COUCHDB_ADDRESS        := $(LOCAL_IP_ADDRESS)
 MY_COUCHDB_PORT           := 5984
 MY_COUCHDB_USER           := 'admin'
 MY_COUCHDB_PASSWORD       := 'p4ssw0rd'
