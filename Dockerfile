@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM raspbian/stretch:latest
 
 # Based on: https://andyfelong.com/2016/12/couchdb-2-0-on-raspberry-pi/
 

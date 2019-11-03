@@ -15,16 +15,19 @@ MY_COUCHDB_PASSWORD       = os.environ['MY_COUCHDB_PASSWORD']
 db = None
 
 # Try forever to connect
+print("Attempting to connect to CouchDB server at " + MY_COUCHDB_ADDRESS + ":" + str(MY_COUCHDB_PORT) + "...")
 while True:
-  print("Attempting to connect to CouchDB server at " + MY_COUCHDB_ADDRESS + ":" + str(MY_COUCHDB_PORT) + "...")
-  couchdbserver = couchdb.Server('http://%s:%s@%s:%d/' % ( \
-    MY_COUCHDB_USER, \
-    MY_COUCHDB_PASSWORD, \
-    MY_COUCHDB_ADDRESS, \
-    MY_COUCHDB_PORT))
-  if couchdbserver:
-    break
-  print("CouchDB server not accessible. Will retry...")
+  try:
+    couchdbserver = couchdb.Server('http://%s:%s@%s:%d/' % ( \
+      MY_COUCHDB_USER, \
+      MY_COUCHDB_PASSWORD, \
+      MY_COUCHDB_ADDRESS, \
+      MY_COUCHDB_PORT))
+    if couchdbserver:
+      break
+  except:
+    pass
+  print("... CouchDB server not accessible. Will retry ...")
   time.sleep(2)
 
 # Connected!
