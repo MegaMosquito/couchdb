@@ -4,7 +4,7 @@ FROM raspbian/stretch:latest
 
 # Basic setup
 RUN apt-get update
-RUN apt-get install -y vim curl wget jq gnupg python3-pip
+RUN apt-get install -y vim curl wget jq gnupg
 
 # Install Mozilla JS API and its dev package
 RUN apt-get install -y libnspr4 libnspr4-dev libffi-dev
@@ -49,9 +49,6 @@ RUN ln -s /data /home/couchdb/data
 
 # Fixup all permissions
 RUN chown -R couchdb:couchdb /home/couchdb
-
-# Install the couchdb Python binding
-RUN pip3 install couchdb
 
 # Start it up!
 # 5984: Main CouchDB endpoint
