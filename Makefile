@@ -11,7 +11,7 @@
 # tmpfs   /ramdisk    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0
 
 # Some bits from https://github.com/MegaMosquito/netstuff/blob/master/Makefile
-LOCAL_DEFAULT_ROUTE     := $(shell sh -c "ip route | grep default")
+LOCAL_DEFAULT_ROUTE     := $(shell sh -c "ip route | grep default | sed 's/dhcp src //'")
 LOCAL_IP_ADDRESS        := $(word 7, $(LOCAL_DEFAULT_ROUTE))
 
 # These variables need to match couchdb_ini, and sync.sh, and *_PORT below
@@ -58,25 +58,54 @@ dev: build
 	-docker rm -f couchdb 2> /dev/null || :
 	-docker network create $(NETNAME) 2>/dev/null || :
 	@echo " " \
-	@echo "Storing couchdb data files in $(STORAGE_DIR)"
+	@echo "Storing couchdb data files in $(DEV_STORAGE_DIR)"
 	@echo " " \
-	docker run -it --name couchdb --volume `pwd`:/outside --volume $(DEV_STORAGE_DIR):/data --publish 5984:5984 couchdb /bin/bash
+	docker run -it --volume `pwd`:/outside \
+            --name couchdb \
+            -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
+            -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
+            -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
+            -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+            --volume $(DEV_STORAGE_DIR):/data \
+            $(PUBLISH) \
+            $(NETWORK) $(ALIAS) \
+            couchdb /bin/sh
 
 run:
+	@echo "MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS)"
+	-docker network create $(NETNAME) 2>/dev/null || :
 	-docker rm -f couchdb 2>/dev/null || :
 	-sudo rm -rf $(RAM_STORAGE_DIR) || :
-	-docker network create $(NETNAME) 2>/dev/null || :
 	@echo "Starting RAM instance of couchdb on port $(HOST_RAM_PORT) with data files in $(RAM_STORAGE_DIR)"
-	docker run -d --name couchdb --restart unless-stopped --volume `pwd`:/outside --volume $(RAM_STORAGE_DIR):/data $(PUBLISH) $(NETWORK) $(ALIAS) couchdb
-	@echo "CouchDB is ready. Relax."
+	docker run -d \
+            --name couchdb \
+            -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
+            -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
+            -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
+            -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+            --volume $(RAM_STORAGE_DIR):/data \
+            --publish 5984:5984 \
+            --restart unless-stopped \
+            couchdb
+	@echo "RAM CouchDB instance is ready. Relax."
 	#echo "Starting DISK instance of couchdb on port $(HOST_DISK_PORT) with data files in $(DISK_STORAGE_DIR)"
-	#docker run -d --name couchdb2 --restart unless-stopped --volume `pwd`:/outside --volume $(DISK_STORAGE_DIR):/data --publish $(HOST_DISK_PORT):5984 couchdb
-	@echo "NOTE: The 'python ./setup.py' command below runs on the *host* and requires you to have previously run: 'pip install couchdb'"
-	MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
-	MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
-	MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
-	MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
-	python ./setup.py
+	#docker run -d \
+        #    --name couchdb \
+        #    -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
+        #    -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
+        #    -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
+        #    -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+        #    --volume $(DISK_STORAGE_DIR):/data \
+	#    --publish $(HOST_DISK_PORT):5984 couchdb \
+        #    --restart unless-stopped \
+        #    couchdb
+	@echo "NOTE: The 'python ./setup.py' command below runs on the *host* (which requires: 'pip install couchdb')"
+	pip3 install couchdb
+	export MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) && \
+	export MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) && \
+	export MY_COUCHDB_USER=$(MY_COUCHDB_USER) && \
+	export MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) && \
+	python3 ./setup.py
 
 exec:
 	docker exec -it couchdb /bin/bash
