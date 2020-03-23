@@ -34,11 +34,8 @@ DISK_STORAGE_DIR:=$(shell pwd)/../_couchdb_data
 DEV_STORAGE_DIR:=$(shell pwd)/../_couchdb_dev_data
 
 # Host ports for the RAM instance and the DISK instance
-HOST_RAM_PORT:=5984
-HOST_DISK_PORT:=5985
-PUBLISH:=
-# Set this to publish the service port to the host
-PUBLISH:=--publish $(HOST_RAM_PORT):5984
+HOST_RAM_INSTANCE_PORT:=5984
+HOST_DISK_INSTANCE_PORT:=5985
 
 # Private network
 NETNAME:=
@@ -57,55 +54,62 @@ build:
 dev: build
 	-docker rm -f couchdb 2> /dev/null || :
 	-docker network create $(NETNAME) 2>/dev/null || :
-	@echo " " \
+	-sudo rm -rf $(DEV_STORAGE_DIR) || :
+	@echo " "
+	@echo "Starting DEV instance on port $(HOST_RAM_INSTANCE_PORT)."
 	@echo "Storing couchdb data files in $(DEV_STORAGE_DIR)"
-	@echo " " \
+	@echo " "
 	docker run -it --volume `pwd`:/outside \
-            --name couchdb \
-            -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
-            -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
-            -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
-            -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
-            --volume $(DEV_STORAGE_DIR):/data \
-            $(PUBLISH) \
-            $(NETWORK) $(ALIAS) \
-            couchdb /bin/sh
+	  --name couchdb \
+	  --publish $(HOST_RAM_INSTANCE_PORT):$(MY_COUCHDB_PORT) \
+	  -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
+	  -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
+	  -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
+	  -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+	  --volume $(DEV_STORAGE_DIR):/data \
+	  $(PUBLISH_RAM_INSTANCE) \
+	  $(NETWORK) $(ALIAS) \
+	  couchdb /bin/sh
 
 run:
-	@echo "MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS)"
 	-docker network create $(NETNAME) 2>/dev/null || :
 	-docker rm -f couchdb 2>/dev/null || :
 	-sudo rm -rf $(RAM_STORAGE_DIR) || :
-	@echo "Starting RAM instance of couchdb on port $(HOST_RAM_PORT) with data files in $(RAM_STORAGE_DIR)"
-	docker run -d \
-            --name couchdb \
-            -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
-            -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
-            -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
-            -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
-            --volume $(RAM_STORAGE_DIR):/data \
-            --publish 5984:5984 \
-            --restart unless-stopped \
-            couchdb
-	@echo "RAM CouchDB instance is ready. Relax."
-	#echo "Starting DISK instance of couchdb on port $(HOST_DISK_PORT) with data files in $(DISK_STORAGE_DIR)"
-	#docker run -d \
-        #    --name couchdb \
-        #    -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
-        #    -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
-        #    -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
-        #    -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
-        #    --volume $(DISK_STORAGE_DIR):/data \
-	#    --publish $(HOST_DISK_PORT):5984 couchdb \
-        #    --restart unless-stopped \
-        #    couchdb
-	@echo "NOTE: The 'python ./setup.py' command below runs on the *host* (which requires: 'pip install couchdb')"
+	@echo " "
+	@echo "Starting RAM instance on port $(HOST_RAM_INSTANCE_PORT)."
+	@echo "Storing couchdb data files in $(RAM_STORAGE_DIR)"
+	@echo " "
+	docker run -d --restart unless-stopped \
+	  --name couchdb \
+	  --publish $(HOST_RAM_INSTANCE_PORT):$(MY_COUCHDB_PORT) \
+	  --volume $(RAM_STORAGE_DIR):/data \
+	  -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
+	  -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
+	  -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
+	  -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+	  couchdb
+	@echo "NOTE: The 'python ./setup.py' command runs on the *host* (which first requires: 'pip3 install couchdb')"
 	pip3 install couchdb
 	export MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) && \
 	export MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) && \
 	export MY_COUCHDB_USER=$(MY_COUCHDB_USER) && \
 	export MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) && \
 	python3 ./setup.py
+	#@echo " "
+	@echo "RAM CouchDB instance is ready. Relax."
+	#@echo " "
+	#@echo "Starting DISK instance on port $(HOST_DISK_INSTANCE_PORT)."
+	#@echo "Storing couchdb data files in $(DISK_STORAGE_DIR)"
+	#@echo " "
+	#docker run -d --restart unless-stopped \
+	#  --name couchdb_disk \
+	#  --volume $(DISK_STORAGE_DIR):/data \
+	#  --publish $(HOST_DISK_INSTANCE_PORT):$(MY_COUCHDB_PORT) \
+	#  -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
+	#  -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
+	#  -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
+	#  -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+	#  couchdb
 
 exec:
 	docker exec -it couchdb /bin/bash

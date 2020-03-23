@@ -39,13 +39,13 @@ RUN mkdir /home/couchdb
 # Copy the (just built) release code to /home/couchdb
 RUN cp -Rp /apache-couchdb-2.3.0/rel/couchdb/* /home/couchdb/
 
-# Copy over the init file
-COPY ./couchdb_ini /home/couchdb/etc/local.ini
-
 # Symlink in the bound host volume to `data` (to persist the database data)
 # Note that the `docker run` command must mount a volume to `/data` for this!
 # See the Makefile STORAGE_DIR assignment for more details on this.
 RUN ln -s /data /home/couchdb/data
+
+# Copy over the init file
+COPY ./couchdb_ini /home/couchdb/etc/local.ini
 
 # Fixup all permissions
 RUN chown -R couchdb:couchdb /home/couchdb
