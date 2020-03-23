@@ -56,18 +56,22 @@ build:
 
 dev: build
 	-docker rm -f couchdb 2> /dev/null || :
-	echo "Storing couchdb data files in $(STORAGE_DIR)"
 	-docker network create $(NETNAME) 2>/dev/null || :
+	@echo " " \
+	@echo "Storing couchdb data files in $(STORAGE_DIR)"
+	@echo " " \
 	docker run -it --name couchdb --volume `pwd`:/outside --volume $(DEV_STORAGE_DIR):/data --publish 5984:5984 couchdb /bin/bash
 
 run:
-	-docker network create $(NETNAME) 2>/dev/null || :
 	-docker rm -f couchdb 2>/dev/null || :
-	echo "Starting RAM instance of couchdb on port $(HOST_RAM_PORT) with data files in $(RAM_STORAGE_DIR)"
+	-sudo rm -rf $(RAM_STORAGE_DIR) || :
+	-docker network create $(NETNAME) 2>/dev/null || :
+	@echo "Starting RAM instance of couchdb on port $(HOST_RAM_PORT) with data files in $(RAM_STORAGE_DIR)"
 	docker run -d --name couchdb --restart unless-stopped --volume `pwd`:/outside --volume $(RAM_STORAGE_DIR):/data $(PUBLISH) $(NETWORK) $(ALIAS) couchdb
 	@echo "CouchDB is ready. Relax."
 	#echo "Starting DISK instance of couchdb on port $(HOST_DISK_PORT) with data files in $(DISK_STORAGE_DIR)"
 	#docker run -d --name couchdb2 --restart unless-stopped --volume `pwd`:/outside --volume $(DISK_STORAGE_DIR):/data --publish $(HOST_DISK_PORT):5984 couchdb
+	@echo "NOTE: The 'python ./setup.py' command below runs on the *host* and requires you to have previously run: 'pip install couchdb'"
 	MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
 	MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
 	MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
@@ -80,9 +84,11 @@ exec:
 stop:
 	-docker rm -f couchdb 2>/dev/null || :
 	#-docker rm -f couchdb2 2>/dev/null || :
-	sudo rm -rf $(RAM_STORAGE_DIR) || :
 
 clean: stop
+	sudo rm -rf $(DEV_STORAGE_DIR) || :
+	sudo rm -rf $(RAM_STORAGE_DIR) || :
+	sudo rm -rf $(DISK_STORAGE_DIR) || :
 	-docker rmi couchdb 2>/dev/null || :
 
 sync:
