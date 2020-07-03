@@ -115,13 +115,13 @@ exec:
 	docker exec -it couchdb /bin/bash
 
 stop:
+	sudo rm -rf $(DEV_STORAGE_DIR) || :
+	sudo rm -rf $(RAM_STORAGE_DIR) || :
+	sudo rm -rf $(DISK_STORAGE_DIR) || :
 	-docker rm -f couchdb 2>/dev/null || :
 	#-docker rm -f couchdb2 2>/dev/null || :
 
 clean: stop
-	sudo rm -rf $(DEV_STORAGE_DIR) || :
-	sudo rm -rf $(RAM_STORAGE_DIR) || :
-	sudo rm -rf $(DISK_STORAGE_DIR) || :
 	-docker rmi couchdb 2>/dev/null || :
 
 sync:
