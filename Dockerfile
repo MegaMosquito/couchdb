@@ -26,18 +26,18 @@ RUN apt-get --no-install-recommends install -y erlang erlang-reltool
 RUN apt-get --no-install-recommends -y install build-essential pkg-config libicu-dev libcurl4-openssl-dev
 
 # Download couchdb source and build it
-RUN wget http://apache.mirrors.pair.com/couchdb/source/2.3.0/apache-couchdb-2.3.0.tar.gz
-RUN tar zxvf apache-couchdb-2.3.0.tar.gz
-RUN cd /apache-couchdb-2.3.0; ./configure
-RUN make -C /apache-couchdb-2.3.0 release
-RUN rm apache-couchdb-2.3.0.tar.gz
+RUN wget http://apache.mirrors.pair.com/couchdb/source/2.3.1/apache-couchdb-2.3.1.tar.gz
+RUN tar zxvf apache-couchdb-2.3.1.tar.gz
+RUN cd /apache-couchdb-2.3.1; ./configure
+RUN make -C /apache-couchdb-2.3.1 release
+RUN rm apache-couchdb-2.3.1.tar.gz
 
 # Setup the couchdb user as a home for couchdb files
 RUN useradd -d /home/couchdb couchdb
 RUN mkdir /home/couchdb
 
 # Copy the (just built) release code to /home/couchdb
-RUN cp -Rp /apache-couchdb-2.3.0/rel/couchdb/* /home/couchdb/
+RUN cp -Rp /apache-couchdb-2.3.1/rel/couchdb/* /home/couchdb/
 
 # Symlink in the bound host volume to `data` (to persist the database data)
 # Note that the `docker run` command must mount a volume to `/data` for this!

@@ -12,7 +12,7 @@ MY_COUCHDB_USER           = os.environ['MY_COUCHDB_USER']
 MY_COUCHDB_PASSWORD       = os.environ['MY_COUCHDB_PASSWORD']
 
 # Store the DB handle here
-db = None
+couchdbserver = None
 
 # Try forever to connect
 print("Attempting to connect to CouchDB server at " + MY_COUCHDB_ADDRESS + ":" + str(MY_COUCHDB_PORT) + "...")

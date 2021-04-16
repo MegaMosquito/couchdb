@@ -8,7 +8,16 @@
 # by the `netmon` container (you don't want to update one on a flash disk
 # at that rate or the flash disk will soon fail. To create a RAM disk just
 # add this line to your `/etc/fstab` file (as root):
-# tmpfs   /ramdisk    tmpfs    defaults,noatime,nosuid,mode=0755,size=100m    0 0
+#   tmpfs /ramdisk   tmpfs defaults,noatime,nosuid,size=100m,uid=pi,gid=pi,mode=1700 0 0
+# then reboot. The above will create a 100MB file system owned by the "pi" user
+# so then the pi user can bind mount this into the container with r/w as the
+# "make dev" and "make run" commands below do..
+# On a Raspberry Pi, or other machine that uses MicroSD flash for storage,
+# you may want to disable swapping, since "tmpfs" will swap out to storage
+# when RAM is full and this may cause early disk failure. To do that, set this:
+#   CONF_SWAPSIZE=0
+# in:
+#  /etc/dphys-swapfile
 
 # Some bits from https://github.com/MegaMosquito/netstuff/blob/master/Makefile
 LOCAL_DEFAULT_ROUTE     := $(shell sh -c "ip route | grep default | sed 's/dhcp src //'")
@@ -20,58 +29,87 @@ MY_COUCHDB_PORT           := 5984
 MY_COUCHDB_USER           := 'admin'
 MY_COUCHDB_PASSWORD       := 'p4ssw0rd'
 
-# To initiate a sync between the RAM instance and the disk instance, use
-# the `make sync` command.
+# To initiate a regular sync between the RAM instance and the disk instance,
+# use `make runsync` command.
 
 # These variables configure where on the host couchdb will store its files
-# (RAM ro enable frequent read/write or flash diskfor data persistence
-# between container start/stop and host reboots).
-# The specified directory is mounted in each running container as `/data`
-# and the Dockerfile symlinks `/data` to `/home/couchdb/data` where couchdb
-# will normally write its data. See the Dockerfile for more details.
+# (RAM to enable frequent read/write or disk for data persistence between
+# host reboots).  See `couchdb_ini` and `Dockerfile` for more details.
 RAM_STORAGE_DIR:=/ramdisk/couchdb
-DISK_STORAGE_DIR:=$(shell pwd)/../_couchdb_data
-DEV_STORAGE_DIR:=$(shell pwd)/../_couchdb_dev_data
+DISK_STORAGE_DIR:=/home/$(USER)/_couchdb_data
+DEV_STORAGE_DIR:=/home/$(USER)/_dev_couchdb_data
 
-# Host ports for the RAM instance and the DISK instance
-HOST_RAM_INSTANCE_PORT:=5984
-HOST_DISK_INSTANCE_PORT:=5985
+# Bind addresses and port for the RAM instance (accessible from LAN with creds)
+RAM_BIND_ADDRESS:=0.0.0.0
+RAM_BIND_PORT:=$(MY_COUCHDB_PORT)
 
-# Private network
-NETNAME:=
-NETWORK:=
-ALIAS:=
-# Set these to use the private network
-NETNAME:=dbnet
-NETWORK:=--net=$(NETNAME)
-ALIAS:=--net-alias=couchdb
+# Bind address and port for the DISK instance (not visible off this host)
+DISK_BIND_ADDRESS:=127.0.0.1
+DISK_BIND_PORT:=5985
 
-all: build run
+# Docker bridge (private virtual) network for local container comms
+NETNAME:=couchdbnet
+RAM_ALIAS:=couchdb
+DISK_ALIAS:=couchdb_disk
+
+default: build run
 
 build:
 	docker build -t couchdb .
 
-dev: build
+dev: devdisk devram
+
+# Run the RAM Instance for development
+devram: build
 	-docker rm -f couchdb 2> /dev/null || :
 	-docker network create $(NETNAME) 2>/dev/null || :
-	-sudo rm -rf $(DEV_STORAGE_DIR) || :
 	@echo " "
-	@echo "Starting DEV instance on port $(HOST_RAM_INSTANCE_PORT)."
+	@echo "Copying DISK storage to RAM storage ($(RAM_STORAGE_DIR))..."
+	-sudo rm -rf $(RAM_STORAGE_DIR) || :
+	-sudo cp -r $(DISK_STORAGE_DIR) $(RAM_STORAGE_DIR)|| :
+	@echo " "
+	@echo "Starting DEV RAM instance at $(RAM_BIND_ADDRESS):$(RAM_BIND_PORT)."
 	@echo "Storing couchdb data files in $(DEV_STORAGE_DIR)"
+	@echo "Connect to Futon at: http://$(RAM_BIND_ADDRESS):$(RAM_BIND_PORT)/_utils/
 	@echo " "
 	docker run -it --volume `pwd`:/outside \
 	  --name couchdb \
-	  --publish $(HOST_RAM_INSTANCE_PORT):$(MY_COUCHDB_PORT) \
+	  --publish $(RAM_BIND_ADDRESS):$(MY_COUCHDB_PORT):$(MY_COUCHDB_PORT) \
+	  -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
+	  -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
+	  -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
+	  -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+	  --volume $(RAM_STORAGE_DIR):/data \
+	  --net $(NETNAME) --net-alias $(RAM_ALIAS) \
+	  couchdb /bin/sh
+
+# Run the disk Instance for development
+# NOTE: runs as a daemon, with `sleep 365d` to keep itself up.
+# To do anything interesting in this container exec in.
+devdisk: build
+	-docker rm -f couchdb_disk 2> /dev/null || :
+	-docker network create $(NETNAME) 2>/dev/null || :
+	@echo " "
+	@echo "Copying DISK storage to DEV storage ($(DEV_STORAGE_DIR))..."
+	-sudo rm -rf $(DISK_STORAGE_DIR) || :
+	-sudo cp -r $(DISK_STORAGE_DIR) $(DEV_STORAGE_DIR)|| :
+	@echo "Starting DEV DISK instance at $(DISK_BIND_ADDRESS):$(DISK_BIND_PORT)."
+	@echo "Connect to Futon at: http://$(DISK_BIND_ADDRESS):$(DISK_BIND_PORT)/_utils/
+	@echo " "
+	docker run -d --volume `pwd`:/outside \
+	  --name couchdb_disk \
+	  --publish $(DISK_BIND_ADDRESS):$(DISK_BIND_PORT):$(MY_COUCHDB_PORT) \
 	  -e MY_COUCHDB_ADDRESS=$(MY_COUCHDB_ADDRESS) \
 	  -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
 	  -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
 	  -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
 	  --volume $(DEV_STORAGE_DIR):/data \
-	  $(PUBLISH_RAM_INSTANCE) \
-	  $(NETWORK) $(ALIAS) \
-	  couchdb /bin/sh
+	  --net $(NETNAME) --net-alias $(DISK_ALIAS) \
+	  couchdb sleep 365d &
 
-run:
+run: runram rundisk
+
+runram:
 	-docker network create $(NETNAME) 2>/dev/null || :
 	-docker rm -f couchdb 2>/dev/null || :
 	-sudo rm -rf $(RAM_STORAGE_DIR) || :
@@ -87,6 +125,7 @@ run:
 	  -e MY_COUCHDB_PORT=$(MY_COUCHDB_PORT) \
 	  -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
 	  -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+	  --net $(NETWORK) --net-alias $(ALIAS) \
 	  couchdb
 	@echo "NOTE: The 'python ./setup.py' command runs on the *host* (which first requires: 'pip3 install couchdb')"
 	pip3 install couchdb
@@ -111,20 +150,23 @@ run:
 	#  -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
 	#  couchdb
 
-exec:
+runsync:
+	#docker run ...
+	# Put in a Dockerfile:  sync.sh
+
+execdevram:
 	docker exec -it couchdb /bin/bash
 
+execdevdisk:
+	docker exec -it couchdb_disk /bin/bash
+
 stop:
-	sudo rm -rf $(DEV_STORAGE_DIR) || :
-	sudo rm -rf $(RAM_STORAGE_DIR) || :
-	sudo rm -rf $(DISK_STORAGE_DIR) || :
 	-docker rm -f couchdb 2>/dev/null || :
-	#-docker rm -f couchdb2 2>/dev/null || :
+	-docker rm -f couchdb_disk 2>/dev/null || :
+	sudo rm -rf $(RAM_STORAGE_DIR) || :
+	sudo rm -rf $(DEV_STORAGE_DIR) || :
 
 clean: stop
 	-docker rmi couchdb 2>/dev/null || :
 
-sync:
-	sync.sh
-
-.PHONY: all build dev run exec stop clean sync
+.PHONY: all build dev devram devdisk run runram rundisk runsync execdevram execdevdisk stop clean

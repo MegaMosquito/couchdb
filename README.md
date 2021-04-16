@@ -7,7 +7,7 @@ This container builds and starts a `couchdb` server. But relax, it won't start u
 On the host you will need:
  * `git` (to clone this repo),
  * `make` (so you can use the provided `Makefile` to simplify the steps to build and run the `couchdb` server), and
- * `curl` (to interact with the `couchdb` instance to configure it once it is up and running.
+ * `curl` (so you can interact with the `couchdb` instance once it has started up).
 but you should need nothing else on the host.
 
 ## Initial Configuration
