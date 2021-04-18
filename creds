@@ -1,0 +1,13 @@
+export MY_COUCHDB_USER='admin'
+export MY_COUCHDB_PASSWORD='p4ssw0rd'
+
+# Stand-alone configuration for spawn.sh runs (not used for the dual setup)
+export MY_COUCHDB_NAME=couchdb
+export MY_COUCHDB_PUBLISH_ADDRESS=0.0.0.0
+export MY_COUCHDB_CLIENT_ADDRESS=127.0.0.1
+export MY_COUCHDB_HOST_PORT=5984
+export MY_COUCHDB_STORAGE_DIR=/home/pi/couchdb
+export MY_COUCHDB_NETWORK=couchdbnet
+export MY_COUCHDB_EXTRAS=
+export MY_COUCHDB_COMMAND=
+

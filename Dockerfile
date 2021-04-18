@@ -47,6 +47,9 @@ RUN ln -s /data /home/couchdb/data
 # Copy over the init file
 COPY ./couchdb_ini /home/couchdb/etc/local.ini
 
+# Copy over the database synchronization script
+COPY ./sync.sh /
+
 # Fixup all permissions
 RUN chown -R couchdb:couchdb /home/couchdb
 
