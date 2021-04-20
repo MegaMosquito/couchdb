@@ -127,6 +127,8 @@ remotesync:
 	docker exec -it \
 	  -e MY_COUCHDB_USER=$(MY_COUCHDB_USER) \
 	  -e MY_COUCHDB_PASSWORD=$(MY_COUCHDB_PASSWORD) \
+	  -e MY_COUCHDB_REMOTE=$(MY_COUCHDB_REMOTE) \
+	  -e MY_COUCHDB_DATABASE=$(MY_COUCHDB_DATABASE) \
 	  couchdb \
           /sync.sh localhost:5984 ${MY_COUCHDB_REMOTE} $(MY_COUCHDB_DATABASE)
 
