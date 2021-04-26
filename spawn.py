@@ -6,34 +6,6 @@ import os
 import sys
 import time
 
-# Don't forget to `pip install couchdb`!
-import couchdb
-
-# Get variable (v) value from environment or return the default (d) if given
-def get_from_env(v, d = None):
-  if v in os.environ and '' != os.environ[v]:
-    return os.environ[v]
-  elif d:
-    return d
-  else:
-    sys.exit('ERROR: Variable, "' + v + '" not found in environment!')
-
-# Get configuration from the environment (see the Makefile for typical usage)
-MY_COUCHDB_NAME            = get_from_env('MY_COUCHDB_NAME', 'couchdb')
-MY_COUCHDB_PUBLISH_ADDRESS = get_from_env('MY_COUCHDB_PUBLISH_ADDRESS',
-                               '127.0.0.1')
-MY_COUCHDB_CLIENT_ADDRESS  = get_from_env('MY_COUCHDB_CLIENT_ADDRESS',
-                               MY_COUCHDB_PUBLISH_ADDRESS)
-MY_COUCHDB_HOST_PORT       = int(get_from_env('MY_COUCHDB_HOST_PORT', '5984'))
-MY_COUCHDB_USER            = get_from_env('MY_COUCHDB_USER')
-MY_COUCHDB_PASSWORD        = get_from_env('MY_COUCHDB_PASSWORD')
-MY_COUCHDB_STORAGE_DIR     = get_from_env('MY_COUCHDB_STORAGE_DIR',
-                               '/home/' + os.environ['USER'] + '/_couchdb_data')
-MY_COUCHDB_NETWORK         = get_from_env('MY_COUCHDB_NETWORK', 'couchdbnet')
-MY_COUCHDB_EXTRAS          = get_from_env('MY_COUCHDB_EXTRAS', ' ')
-MY_COUCHDB_COMMAND         = get_from_env('MY_COUCHDB_COMMAND', ' ')
-print('-----  Creating couchdb instance "' + MY_COUCHDB_NAME + '"...  -----')
-
 # Process any command line arguments
 restart = True
 create = True
@@ -71,7 +43,39 @@ for i, arg in enumerate(sys.argv[1:]):
     print('  MY_COUCHDB_NETWORK         Docker bridge network for couchdb')
     print('  MY_COUCHDB_EXTRAS          `docker run` extras (e.g., mount pwd)')
     print('  MY_COUCHDB_COMMAND         Optional command for `docker run`')
+    print('Note:')
+    print('  You require python3 and the couchdb *client* library in order')
+    print('  to run this script. You can install the client library with:')
+    print('    pip3 install couchdb')
     sys.exit()
+
+# Don't forget to `pip install couchdb`!
+import couchdb
+
+# Get variable (v) value from environment or return the default (d) if given
+def get_from_env(v, d = None):
+  if v in os.environ and '' != os.environ[v]:
+    return os.environ[v]
+  elif d:
+    return d
+  else:
+    sys.exit('ERROR: Variable, "' + v + '" not found in environment!')
+
+# Get configuration from the environment (see the Makefile for typical usage)
+MY_COUCHDB_NAME            = get_from_env('MY_COUCHDB_NAME', 'couchdb')
+MY_COUCHDB_PUBLISH_ADDRESS = get_from_env('MY_COUCHDB_PUBLISH_ADDRESS',
+                               '127.0.0.1')
+MY_COUCHDB_CLIENT_ADDRESS  = get_from_env('MY_COUCHDB_CLIENT_ADDRESS',
+                               MY_COUCHDB_PUBLISH_ADDRESS)
+MY_COUCHDB_HOST_PORT       = int(get_from_env('MY_COUCHDB_HOST_PORT', '5984'))
+MY_COUCHDB_USER            = get_from_env('MY_COUCHDB_USER')
+MY_COUCHDB_PASSWORD        = get_from_env('MY_COUCHDB_PASSWORD')
+MY_COUCHDB_STORAGE_DIR     = get_from_env('MY_COUCHDB_STORAGE_DIR',
+                               '/home/' + os.environ['USER'] + '/_couchdb_data')
+MY_COUCHDB_NETWORK         = get_from_env('MY_COUCHDB_NETWORK', 'couchdbnet')
+MY_COUCHDB_EXTRAS          = get_from_env('MY_COUCHDB_EXTRAS', ' ')
+MY_COUCHDB_COMMAND         = get_from_env('MY_COUCHDB_COMMAND', ' ')
+print('-----  Creating couchdb instance "' + MY_COUCHDB_NAME + '"...  -----')
 
 # Setup the storage directory if appropriate
 if '' == MY_COUCHDB_STORAGE_DIR:
