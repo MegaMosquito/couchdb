@@ -112,7 +112,7 @@ sync:
 	  couchdb \
           /sync.sh localhost:5984 couchdb_disk:5984 $(MY_COUCHDB_DATABASE)
 
-# Create a stand-alone remove instance
+# Create a stand-alone remote instance
 remote:
 	@echo "-----  Spawning remote instance with defaults...  -----"
 	bash -c 'source creds; ./spawn.py'
